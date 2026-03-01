@@ -8,9 +8,20 @@ from typing import List
 
 import hashlib
 from contextlib import asynccontextmanager
-from database import SessionLocal, ContactMessage, AdminUser, engine
+import sys
 import os
+import logging
 from dotenv import load_dotenv
+
+# Set up logging for Vercel Runtime Logs check
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info("Initializing FastAPI Backend...")
+
+# Explicitly add the backend folder to Vercel's Python Path so it can find database.py
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from database import SessionLocal, ContactMessage, AdminUser, engine
 
 load_dotenv() # Load variables from .env file locally if present
 
@@ -42,6 +53,7 @@ async def lifespan(app: FastAPI):
     default_pin_hash = get_password_hash(default_pin)
     
     if not admin:
+        logger.info("Creating default Admin user on startup.")
         new_admin = AdminUser(
             username=default_user, 
             password_hash=get_password_hash(default_pass),
@@ -97,11 +109,13 @@ def get_current_admin(credentials: HTTPBasicCredentials = Depends(security), db:
     correct_username = secrets.compare_digest(credentials.username, admin.username)
     correct_password = secrets.compare_digest(get_password_hash(credentials.password), admin.password_hash)
     if not (correct_username and correct_password):
+        logger.warning(f"Failed login attempt for username: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             # We omit WWW-Authenticate header here so the browser doesn't show its default ugly popup
         )
+    logger.info(f"Successful admin login: {credentials.username}")
     return admin
 
 # Pydantic models for request validation and response formatting
