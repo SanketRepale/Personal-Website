@@ -94,29 +94,58 @@ document.addEventListener('DOMContentLoaded', () => {
         intersectionObserver.observe(el);
     });
 
-    // Form Submission Mock
+    // Form Submission with FastAPI Backend
     const contactForm = document.getElementById('contact-form');
     if (contactForm) {
-        contactForm.addEventListener('submit', (e) => {
+        contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = contactForm.querySelector('button');
             const originalText = btn.innerHTML;
 
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
             btn.disabled = true;
 
-            // Mock API Call
-            setTimeout(() => {
-                btn.innerHTML = '<i class="fas fa-check"></i> Message Sent!';
-                btn.style.background = '#10b981'; // Success color
-                contactForm.reset();
+            const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const API_URL = IS_DEV ? 'http://localhost:8000/api/contact' : '/api/contact';
 
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, message })
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (response.ok) {
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Message Sent Successfully!';
+                    btn.style.background = '#10b981'; // Success color
+                    contactForm.reset();
+                } else {
+                    let errMsg = 'Error Sending';
+                    if (data.detail) {
+                        errMsg = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
+                    }
+                    btn.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errMsg}`;
+                    btn.style.background = '#ef4444'; // Error color
+                }
+            } catch (error) {
+                console.error("Error submitting form:", error);
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Network Connection Error';
+                btn.style.background = '#ef4444'; // Error color
+            } finally {
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.style.background = ''; // Revert to default
                     btn.disabled = false;
                 }, 3000);
-            }, 1500);
+            }
         });
     }
 
