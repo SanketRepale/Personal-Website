@@ -94,27 +94,38 @@ def get_db():
 # Dependency to verify Admin Credentials
 def get_current_admin(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
     admin = db.query(AdminUser).first()
+    
+    env_user = os.getenv("ADMIN_USERNAME", "admin@example.com").strip()
+    env_pass = os.getenv("ADMIN_PASSWORD", "admin123").strip()
+    env_pin = os.getenv("ADMIN_RECOVERY_PIN", "12345").strip()
+
     if not admin:
-        # Vercel Serverless environment fallback. If lifespan failed to seed, seed it during first request.
-        default_user = os.getenv("ADMIN_USERNAME", "admin@example.com")
-        default_pass = os.getenv("ADMIN_PASSWORD", "admin123")
-        default_pin = os.getenv("ADMIN_RECOVERY_PIN", "12345")
-        
+        # Vercel Serverless environment fallback. Seed it.
         admin = AdminUser(
-            username=default_user, 
-            password_hash=get_password_hash(default_pass),
-            recovery_pin_hash=get_password_hash(default_pin)
+            username=env_user, 
+            password_hash=get_password_hash(env_pass),
+            recovery_pin_hash=get_password_hash(env_pin)
         )
         db.add(admin)
         db.commit()
-    correct_username = secrets.compare_digest(credentials.username, admin.username)
-    correct_password = secrets.compare_digest(get_password_hash(credentials.password), admin.password_hash)
-    if not (correct_username and correct_password):
+    elif admin.username == "admin@example.com" and env_user != "admin@example.com":
+        # System restarted with new ENVs but old /tmp/ DB exists. Force sync.
+        admin.username = env_user
+        admin.password_hash = get_password_hash(env_pass)
+        admin.recovery_pin_hash = get_password_hash(env_pin)
+        db.commit()
+
+    db_correct_user = admin and secrets.compare_digest(credentials.username, admin.username)
+    db_correct_pass = admin and secrets.compare_digest(get_password_hash(credentials.password), admin.password_hash)
+
+    env_correct_user = secrets.compare_digest(credentials.username, env_user)
+    env_correct_pass = secrets.compare_digest(credentials.password, env_pass)
+
+    if not ((db_correct_user and db_correct_pass) or (env_correct_user and env_correct_pass)):
         logger.warning(f"Failed login attempt for username: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            # We omit WWW-Authenticate header here so the browser doesn't show its default ugly popup
         )
     logger.info(f"Successful admin login: {credentials.username}")
     return admin
