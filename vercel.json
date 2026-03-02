@@ -7,30 +7,50 @@
             "use": "@vercel/python"
         },
         {
-            "src": "*.html",
+            "src": "**/*.html",
             "use": "@vercel/static"
         },
         {
-            "src": "*.css",
+            "src": "**/*.css",
             "use": "@vercel/static"
         },
         {
-            "src": "*.js",
+            "src": "**/*.js",
             "use": "@vercel/static"
         },
         {
-            "src": "*.png",
+            "src": "**/*.png",
             "use": "@vercel/static"
         },
         {
-            "src": "*.jpg",
+            "src": "**/*.jpg",
             "use": "@vercel/static"
         }
     ],
     "routes": [
         {
+            "src": "/index.html",
+            "headers": {
+                "Location": "/"
+            },
+            "status": 308
+        },
+        {
+            "src": "/",
+            "dest": "/pages/home.html"
+        },
+        {
+            "src": "/admin",
+            "dest": "/pages/admin.html"
+        },
+        {
             "src": "/api/(.*)",
             "dest": "backend/main.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/$1"
         }
-    ]
+    ],
+    "cleanUrls": true
 }
