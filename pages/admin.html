@@ -269,7 +269,8 @@
     </button>
 
     <script>
-        const API_BASE = '/api'; // Always use relative paths so it uses the same origin
+        const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = IS_DEV ? 'http://localhost:8000/api' : '/api';
         const API_URL = `${API_BASE}/messages`;
         const CREDS_URL = `${API_BASE}/admin/credentials`;
         const RESET_URL = `${API_BASE}/admin/reset-password`;
