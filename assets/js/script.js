@@ -33,6 +33,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Theme Toggle
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const body = document.body;
+
+    if (themeToggleBtn) {
+        const themeIcon = themeToggleBtn.querySelector('i');
+        const savedTheme = localStorage.getItem('theme');
+
+        if (savedTheme === 'light') {
+            body.classList.add('light-mode');
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon');
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            const isLight = body.classList.contains('light-mode');
+
+            if (isLight) {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+            } else {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+    }
+
     // Intersection Observer for scroll animations
     const observerOptions = {
         root: null,
